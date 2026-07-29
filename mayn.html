@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0B0B0B">
+<title>Quest RPG</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0B0B0B;
+      --card: #1A1A1A;
+      --line: #2A2A2A;
+      --white: #FFFFFF;
+      --gray: #888888;
+      --dim: #555555;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: "Rubik", -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--white);
+      font-size: 14px;
+    }
+
+    .app { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; }
+
+    /* ---------- Шапка ---------- */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg);
+      border-bottom: 1px solid #1F1F1F;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+    }
+
+    .hdr-left { display: flex; align-items: baseline; gap: 10px; }
+
+    .hdr-lvl {
+      font-family: "Russo One", sans-serif;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--gray);
+      display: inline-block;
+    }
+
+    .hdr-name {
+      font-family: "Russo One", sans-serif;
+      font-size: 15px;
+      color: var(--white);
+      display: inline-block;
+    }
+
+    .hdr-xp {
+      font-family: "Russo One", sans-serif;
+      font-size: 16px;
+      color: var(--white);
+      display: inline-block;
+    }
+
+    .hdr-xp-label { font-size: 11px; color: var(--gray); margin-left: 5px; }
+
+    .bump { animation: bump 0.35s ease; }
+    @keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
+
+    .shake { animation: shake 0.35s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    /* ---------- Экраны ---------- */
+    .content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+
+    .screen { display: none; padding: 16px; }
+    .screen.active { display: block; animation: screenIn 0.25s ease; }
+    @keyframes screenIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gray);
+      margin: 20px 2px 10px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+
+    #homeTasks, #listTasks, #shopItems { display: flex; flex-direction: column; gap: 10px; }
+
+    .empty {
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      padding: 30px 16px;
+      text-align: center;
+      color: var(--gray);
+      font-size: 13px;
+    }
+
+    /* ---------- Кнопки ---------- */
+    .btn {
+      border: none;
+      border-radius: 12px;
+      font-family: "Rubik", sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.12s ease, opacity 0.2s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+
+    .btn-white { background: var(--white); color: var(--bg); }
+    .btn-gray { background: #232323; color: var(--gray); border: 1px solid var(--line); }
+
+    .add-btn {
+      width: 100%;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+    .add-btn svg { width: 18px; height: 18px; }
+
+    /* ---------- Карточка задания (Главная) ---------- */
+    .task-card { padding: 16px; animation: cardIn 0.3s ease both; }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .task-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .task-title { font-size: 15px; font-weight: 600; line-height: 1.35; }
+    .task-xp { font-family: "Russo One", sans-serif; font-size: 12px; white-space: nowrap; }
+
+    .task-actions { display: flex; gap: 10px; }
+    .task-actions .btn { flex: 1; height: 44px; font-size: 13px; }
+
+    /* ---------- Строка задания (Список) ---------- */
+    .task-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      animation: cardIn 0.3s ease both;
+    }
+    .row-info { flex: 1; min-width: 0; }
+    .row-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-xp { font-family: "Russo One", sans-serif; font-size: 11px; color: var(--gray); margin-top: 3px; }
+
+    .row-actions { display: flex; flex-direction: column; gap: 8px; }
+    .row-actions .btn { height: 34px; font-size: 11px; padding: 0 12px; min-width: 104px; }
+
+    /* ---------- Магазин ---------- */
+    .shop-note { font-size: 12px; color: var(--gray); line-height: 1.5; margin: -4px 2px 12px; }
+
+    .shop-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+    .shop-info { flex: 1; min-width: 0; }
+    .shop-name { font-size: 14px; font-weight: 600; }
+    .shop-desc { font-size: 12px; color: var(--gray); margin-top: 3px; }
+
+    .swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .preview-emoji { font-size: 14px; margin-left: 8px; }
+
+    .btn-buy {
+      font-family: "Russo One", sans-serif;
+      font-size: 11px;
+      background: var(--white);
+      color: var(--bg);
+      height: 40px;
+      padding: 0 14px;
+      white-space: nowrap;
+    }
+
+    /* ---------- Профиль ---------- */
+    .profile-head { display: flex; flex-direction: column; align-items: center; padding: 18px 0 6px; }
+
+    .avatar {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 3px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: border-color 0.3s ease;
+    }
+    .avatar svg { width: 40px; height: 40px; }
+
+    .avatar-emoji {
+      position: absolute;
+      right: -5px;
+      bottom: -5px;
+      width: 34px;
+      height: 34px;
+      font-size: 19px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+    }
+
+    .nick { font-family: "Russo One", sans-serif; font-size: 20px; margin-top: 14px; }
+    .lvl-name { font-size: 13px; color: var(--gray); margin-top: 5px; }
+
+    .progress-card { padding: 16px; margin-top: 16px; }
+    .progress-track {
+      height: 10px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      background: var(--white);
+      border-radius: 999px;
+      transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .progress-label { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--gray); margin-top: 9px; }
+
+    .stats { display: flex; gap: 10px; margin-top: 12px; }
+    .stat { flex: 1; text-align: center; padding: 13px 6px; }
+    .stat-value { font-family: "Russo One", sans-serif; font-size: 16px; }
+    .stat-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--gray); margin-top: 5px; }
+
+    .levels-card { padding: 4px 16px; }
+    .level-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid #222222; }
+    .level-row:last-child { border-bottom: none; }
+    .level-num { font-family: "Russo One", sans-serif; font-size: 12px; width: 20px; color: var(--dim); }
+    .level-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--dim); }
+    .level-xp { font-family: "Russo One", sans-serif; font-size: 11px; color: var(--dim); }
+
+    .level-row.past .level-num, .level-row.past .level-xp { color: var(--gray); }
+    .level-row.past .level-name { color: var(--gray); }
+    .level-row.current .level-num, .level-row.current .level-name, .level-row.current .level-xp { color: var(--white); }
+    .level-row.current .level-name { font-weight: 700; }
+
+    /* ---------- Нижняя навигация ---------- */
+    .nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      background: var(--bg);
+      border-top: 1px solid var(--line);
+      display: flex;
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 50;
+    }
+
+    .nav-indicator {
+      position: absolute;
+      top: -1px;
+      left: 0;
+      width: 25%;
+      height: 2px;
+      background: var(--white);
+      border-radius: 0 0 2px 2px;
+      transform: translateX(0);
+      transition: transform 0.25s ease;
+    }
+
+    .nav-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--gray);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 11px 0 9px;
+      font-family: "Rubik", sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .nav-btn svg { width: 22px; height: 22px; }
+    .nav-btn.active { color: var(--white); }
+
+    /* ---------- Модальные окна ---------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 90;
+      overscroll-behavior: contain;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 360px;
+      padding: 20px;
+      animation: modalIn 0.22s ease;
+    }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .modal-title { font-family: "Russo One", sans-serif; font-size: 16px; margin-bottom: 6px; }
+    .modal-hint { font-size: 12px; color: var(--gray); line-height: 1.55; margin-bottom: 14px; }
+
+    textarea, .input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--white);
+      font-family: "Rubik", sans-serif;
+      font-size: 16px;
+      padding: 12px;
+      outline: none;
+      resize: none;
+      transition: border-color 0.2s ease;
+    }
+    textarea:focus, .input:focus { border-color: var(--white); }
+
+    .modal-error { color: #FF6B6B; font-size: 12px; margin-top: 8px; min-height: 16px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+    .modal-actions .btn { flex: 1; height: 46px; font-size: 13px; }
+
+    /* ---------- Тост ---------- */
+    .toast {
+      position: fixed;
+      bottom: calc(86px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translate(-50%, 16px);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--white);
+      font-size: 13px;
+      padding: 10px 18px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="hdr-left">
+        <span class="hdr-lvl" id="hdrLvl">LVL 1</span>
+        <span class="hdr-name" id="hdrName">Новичок</span>
+      </div>
+      <div>
+        <span class="hdr-xp" id="hdrXp">0</span><span class="hdr-xp-label">XP</span>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <section class="screen active" id="screen-home">
+        <button class="btn btn-white add-btn" id="addTaskBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          ДОБАВИТЬ ЗАДАНИЕ
+        </button>
+        <div class="section-title">Активные задания · <span id="homeCount">0</span></div>
+        <div id="homeTasks"></div>
+      </section>
+
+      <section class="screen" id="screen-list">
+        <div class="section-title">Список заданий · <span id="listCount">0</span></div>
+        <div id="listTasks"></div>
+      </section>
+
+      <section class="screen" id="screen-shop">
+        <div class="section-title">Магазин</div>
+        <div class="shop-note">Трать заработанный XP на кастомизацию профиля. Повторная покупка переключает вариант.</div>
+        <div id="shopItems"></div>
+      </section>
+
+      <section class="screen" id="screen-profile">
+        <div id="profileBody"></div>
+      </section>
+
+    </main>
+
+    <nav class="nav">
+      <div class="nav-indicator" id="navIndicator"></div>
+      <button class="nav-btn active" data-target="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/>
+        </svg>
+        <span>Главная</span>
+      </button>
+      <button class="nav-btn" data-target="list">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/>
+          <line x1="5" y1="6" x2="5" y2="6.01"/><line x1="5" y1="12" x2="5" y2="12.01"/><line x1="5" y1="18" x2="5" y2="18.01"/>
+        </svg>
+        <span>Список</span>
+      </button>
+      <button class="nav-btn" data-target="shop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304z"/>
+          <path d="M9 11v-5a3 3 0 0 1 6 0v5"/>
+        </svg>
+        <span>Магазин</span>
+      </button>
+      <button class="nav-btn" data-target="profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+        </svg>
+        <span>Профиль</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <div class="overlay" id="taskModal">
+    <div class="modal">
+      <div class="modal-title">Новое задание</div>
+      <div class="modal-hint">Формат: «Название | XP». Одна строка — одно задание.<br>Пример: Сделать зарядку | 50</div>
+      <textarea id="taskInput" rows="4" placeholder="Сделать зарядку | 50"></textarea>
+      <div class="modal-error" id="taskError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-gray" id="taskCancel">ОТМЕНА</button>
+        <button class="btn btn-white" id="taskConfirm">ДОБАВИТЬ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="nickModal">
+    <div class="modal">
+      <div class="modal-title">Смена никнейма</div>
+      <div class="modal-hint">Новый никнейм стоит 200 XP.</div>
+      <input class="input" id="nickInput" type="text" placeholder="Введите никнейм" maxlength="20">
+      <div class="modal-error" id="nickError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-gray" id="nickCancel">ОТМЕНА</button>
+        <button class="btn btn-white" id="nickConfirm">СОХРАНИТЬ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var SAVE_KEY = "strict-quest-save-v1";
+
+      var LEVELS = [
+        { level: 1, name: "Новичок", xp: 0 },
+        { level: 2, name: "Средняк", xp: 250 },
+        { level: 3, name: "Мужик", xp: 300 },
+        { level: 4, name: "Ветеран", xp: 500 },
+        { level: 5, name: "Батя", xp: 1000 }
+      ];
+
+      var AVATAR_COLORS = ["#FFFFFF", "#888888", "#4ADE80", "#60A5FA", "#FACC15"];
+      var AVATAR_EMOJIS = ["", "😎", "🔥", "💪", "🐺", "👑"];
+      var FRAME_COLORS = ["", "#FFFFFF", "#888888", "#FACC15"];
+
+      var SHOP = [
+        { id: "color", name: "Цвет иконки", desc: "Сменить цвет иконки профиля", price: 100 },
+        { id: "emoji", name: "Эмодзи на аватар", desc: "Значок на аватаре профиля", price: 150 },
+        { id: "nick", name: "Смена никнейма", desc: "Новое имя вместо «Игрок»", price: 200 },
+        { id: "frame", name: "Рамка аватара", desc: "Цветная рамка вокруг аватара", price: 250 }
+      ];
+
+      var DEFAULT_STATE = {
+        balance: 0,
+        totalEarned: 0,
+        tasks: [],
+        doneCount: 0,
+        declineCount: 0,
+        colorIdx: 0,
+        emojiIdx: 0,
+        frameIdx: 0,
+        nickname: "Игрок"
+      };
+
+      var state = load();
+
+      function load() {
+        try {
+          var raw = localStorage.getItem(SAVE_KEY);
+          if (raw) {
+            return Object.assign({}, DEFAULT_STATE, JSON.parse(raw));
+          }
+        } catch (e) { /* повреждённое сохранение — начинаем с чистого */ }
+        return Object.assign({}, DEFAULT_STATE);
+      }
+
+      function save() {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      }
+
+      function esc(s) {
+        var d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function makeId() {
+        return Date.now() + Math.floor(Math.random() * 1000000);
+      }
+
+      function getLevelInfo(total) {
+        var current = LEVELS[0];
+        var next = null;
+        for (var i = 0; i < LEVELS.length; i++) {
+          if (total >= LEVELS[i].xp) {
+            current = LEVELS[i];
+            next = LEVELS[i + 1] || null;
+          }
+        }
+        var progress = 1;
+        if (next) {
+          progress = (total - current.xp) / (next.xp - current.xp);
+        }
+        return { current: current, next: next, progress: Math.min(1, Math.max(0, progress)) };
+      }
+
+      /* ---------- Тост и анимации ---------- */
+
+      var toastTimer = null;
+
+      function toast(text) {
+        var el = document.getElementById("toast");
+        el.textContent = text;
+        el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2000);
+      }
+
+      function replay(el, cls) {
+        el.classList.remove(cls);
+        void el.offsetWidth;
+        el.classList.add(cls);
+      }
+
+      /* ---------- Рендер ---------- */
+
+      function render() {
+        renderHeader();
+        renderHome();
+        renderList();
+        renderShop();
+        renderProfile();
+      }
+
+      function renderHeader() {
+        var info = getLevelInfo(state.totalEarned);
+        document.getElementById("hdrLvl").textContent = "LVL " + info.current.level;
+        document.getElementById("hdrName").textContent = info.current.name;
+        document.getElementById("hdrXp").textContent = state.balance;
+      }
+
+      function renderHome() {
+        document.getElementById("homeCount").textContent = state.tasks.length;
+        var wrap = document.getElementById("homeTasks");
+        if (state.tasks.length === 0) {
+          wrap.innerHTML = '<div class="empty">Заданий пока нет. Добавь первое.</div>';
+          return;
+        }
+        wrap.innerHTML = state.tasks.map(function (t) {
+          return '<div class="card task-card">' +
+            '<div class="task-top">' +
+              '<div class="task-title">' + esc(t.title) + '</div>' +
+              '<div class="task-xp">+' + t.xp + ' XP</div>' +
+            '</div>' +
+            '<div class="task-actions">' +
+              '<button class="btn btn-white" data-action="done" data-id="' + t.id + '">ВЫПОЛНЕНО</button>' +
+              '<button class="btn btn-gray" data-action="decline" data-id="' + t.id + '">ОТКАЗ</button>' +
+            '</div>' +
+          '</div>';
+        }).join("");
+      }
+
+      function renderList() {
+        document.getElementById("listCount").textContent = state.tasks.length;
+        var wrap = document.getElementById("listTasks");
+        if (state.tasks.length === 0) {
+          wrap.innerHTML = '<div class="empty">Список пуст.</div>';
+          return;
+        }
+        wrap.innerHTML = state.tasks.map(function (t) {
+          return '<div class="card task-row">' +
+            '<div class="row-info">' +
+              '<div class="row-title">' + esc(t.title) + '</div>' +
+              '<div class="row-xp">+' + t.xp + ' XP</div>' +
+            '</div>' +
+            '<div class="row-actions">' +
+              '<button class="btn btn-white" data-action="done" data-id="' + t.id + '">ВЫПОЛНЕНО</button>' +
+              '<button class="btn btn-gray" data-action="decline" data-id="' + t.id + '">ОТКАЗ</button>' +
+            '</div>' +
+          '</div>';
+        }).join("");
+      }
+
+      function renderShop() {
+        var wrap = document.getElementById("shopItems");
+        wrap.innerHTML = SHOP.map(function (item) {
+          var preview = "";
+          if (item.id === "color") {
+            preview = '<span class="swatch" style="background:' + AVATAR_COLORS[state.colorIdx] + '"></span>';
+          }
+          if (item.id === "frame" && state.frameIdx > 0) {
+            preview = '<span class="swatch" style="background:' + FRAME_COLORS[state.frameIdx] + '"></span>';
+          }
+          if (item.id === "emoji" && state.emojiIdx > 0) {
+            preview = '<span class="preview-emoji">' + AVATAR_EMOJIS[state.emojiIdx] + '</span>';
+          }
+          return '<div class="card shop-item">' +
+            '<div class="shop-info">' +
+              '<div class="shop-name">' + item.name + preview + '</div>' +
+              '<div class="shop-desc">' + item.desc + '</div>' +
+            '</div>' +
+            '<button class="btn btn-buy" data-buy="' + item.id + '">' + item.price + ' XP</button>' +
+          '</div>';
+        }).join("");
+      }
+
+      function renderProfile() {
+        var info = getLevelInfo(state.totalEarned);
+        var pct = Math.round(info.progress * 100);
+        var color = AVATAR_COLORS[state.colorIdx];
+        var frame = state.frameIdx > 0 ? FRAME_COLORS[state.frameIdx] : "#2A2A2A";
+        var emoji = AVATAR_EMOJIS[state.emojiIdx];
+
+        var progressLabel = state.totalEarned + (info.next ? " / " + info.next.xp : "") + " XP";
+        var progressSub = info.next
+          ? "до уровня " + info.next.level + " — " + info.next.name
+          : "максимальный уровень";
+
+        var levelsHtml = LEVELS.map(function (l) {
+          var cls = "locked";
+          if (info.current.level === l.level) {
+            cls = "current";
+          } else if (state.totalEarned >= l.xp) {
+            cls = "past";
+          }
+          return '<div class="level-row ' + cls + '">' +
+            '<span class="level-num">' + l.level + '</span>' +
+            '<span class="level-name">' + l.name + '</span>' +
+            '<span class="level-xp">' + l.xp + ' XP</span>' +
+          '</div>';
+        }).join("");
+
+        var body = document.getElementById("profileBody");
+        body.innerHTML =
+          '<div class="profile-head">' +
+            '<div class="avatar" style="border-color:' + frame + '">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/>' +
+                '<path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>' +
+              '</svg>' +
+              (emoji ? '<span class="avatar-emoji">' + emoji + '</span>' : '') +
+            '</div>' +
+            '<div class="nick">' + esc(state.nickname) + '</div>' +
+            '<div class="lvl-name">Уровень ' + info.current.level + ' — ' + info.current.name + '</div>' +
+          '</div>' +
+          '<div class="card progress-card">' +
+            '<div class="progress-track"><div class="progress-fill"></div></div>' +
+            '<div class="progress-label"><span>' + progressLabel + '</span><span>' + progressSub + '</span></div>' +
+          '</div>' +
+          '<div class="stats">' +
+            '<div class="card stat"><div class="stat-value">' + state.doneCount + '</div><div class="stat-label">Выполнено</div></div>' +
+            '<div class="card stat"><div class="stat-value">' + state.declineCount + '</div><div class="stat-label">Отказы</div></div>' +
+            '<div class="card stat"><div class="stat-value">' + state.totalEarned + '</div><div class="stat-label">Заработано</div></div>' +
+          '</div>' +
+          '<div class="section-title">Шкала уровней</div>' +
+          '<div class="card levels-card">' + levelsHtml + '</div>';
+
+        var fill = body.querySelector(".progress-fill");
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { fill.style.width = pct + "%"; });
+        });
+      }
+
+      /* ---------- Действия ---------- */
+
+      function completeTask(id) {
+        var idx = state.tasks.findIndex(function (t) { return t.id === id; });
+        if (idx === -1) return;
+        var task = state.tasks[idx];
+        var before = getLevelInfo(state.totalEarned).current.level;
+        state.tasks.splice(idx, 1);
+        state.balance += task.xp;
+        state.totalEarned += task.xp;
+        state.doneCount += 1;
+        var info = getLevelInfo(state.totalEarned);
+        save();
+        render();
+        replay(document.getElementById("hdrXp"), "bump");
+        if (info.current.level > before) {
+          toast("Новый уровень: " + info.current.name);
+          replay(document.getElementById("hdrName"), "bump");
+        } else {
+          toast("+" + task.xp + " XP");
+        }
+      }
+
+      function declineTask(id) {
+        var idx = state.tasks.findIndex(function (t) { return t.id === id; });
+        if (idx === -1) return;
+        var task = state.tasks[idx];
+        var penalty = Math.floor(task.xp / 2);
+        state.tasks.splice(idx, 1);
+        state.balance -= penalty;
+        state.declineCount += 1;
+        save();
+        render();
+        replay(document.getElementById("hdrXp"), "bump");
+        toast("Отказ: −" + penalty + " XP");
+      }
+
+      function failPurchase() {
+        toast("Недостаточно XP");
+        replay(document.getElementById("hdrXp"), "shake");
+      }
+
+      function buyItem(id) {
+        var item = SHOP.find(function (s) { return s.id === id; });
+        if (state.balance < item.price) {
+          failPurchase();
+          return;
+        }
+        if (id === "nick") {
+          openOverlay(document.getElementById("nickModal"));
+          document.getElementById("nickInput").value = "";
+          document.getElementById("nickError").textContent = "";
+          return;
+        }
+        state.balance -= item.price;
+        if (id === "color") state.colorIdx = (state.colorIdx + 1) % AVATAR_COLORS.length;
+        if (id === "emoji") state.emojiIdx = (state.emojiIdx + 1) % AVATAR_EMOJIS.length;
+        if (id === "frame") state.frameIdx = (state.frameIdx + 1) % FRAME_COLORS.length;
+        save();
+        render();
+        replay(document.getElementById("hdrXp"), "bump");
+        toast("Куплено: " + item.name);
+      }
+
+      /* ---------- Модальные окна ---------- */
+
+      function openOverlay(el) {
+        el.classList.add("open");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeOverlay(el) {
+        el.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+
+      function parseTasks(text) {
+        var lines = text.split("\n").map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
+        var ok = [];
+        var bad = 0;
+        lines.forEach(function (line, i) {
+          var parts = line.split("|");
+          if (parts.length < 2) { bad++; return; }
+          var title = parts.slice(0, -1).join("|").trim();
+          var xp = parseInt(parts[parts.length - 1], 10);
+          if (!title || isNaN(xp) || xp <= 0) { bad++; return; }
+          ok.push({ id: makeId() + i, title: title, xp: xp });
+        });
+        return { ok: ok, bad: bad };
+      }
+
+      function confirmTask() {
+        var input = document.getElementById("taskInput");
+        var error = document.getElementById("taskError");
+        var parsed = parseTasks(input.value);
+        if (parsed.ok.length === 0) {
+          error.textContent = "Не распознано. Формат: «Название | XP», например «Отжаться | 30»";
+          return;
+        }
+        state.tasks = state.tasks.concat(parsed.ok);
+        save();
+        render();
+        closeOverlay(document.getElementById("taskModal"));
+        input.value = "";
+        error.textContent = "";
+        if (parsed.bad > 0) {
+          toast("Добавлено: " + parsed.ok.length + ", с ошибками: " + parsed.bad);
+        } else {
+          toast(parsed.ok.length === 1 ? "Задание добавлено" : "Добавлено заданий: " + parsed.ok.length);
+        }
+      }
+
+      function confirmNick() {
+        var input = document.getElementById("nickInput");
+        var error = document.getElementById("nickError");
+        var name = input.value.trim();
+        if (!name) {
+          error.textContent = "Введите никнейм";
+          return;
+        }
+        var item = SHOP.find(function (s) { return s.id === "nick"; });
+        if (state.balance < item.price) {
+          closeOverlay(document.getElementById("nickModal"));
+          failPurchase();
+          return;
+        }
+        state.balance -= item.price;
+        state.nickname = name;
+        save();
+        render();
+        closeOverlay(document.getElementById("nickModal"));
+        replay(document.getElementById("hdrXp"), "bump");
+        toast("Никнейм обновлён");
+      }
+
+      /* ---------- Вкладки ---------- */
+
+      var navBtns = document.querySelectorAll(".nav-btn");
+      var indicator = document.getElementById("navIndicator");
+
+      function switchTab(index) {
+        navBtns.forEach(function (b) { b.classList.remove("active"); });
+        navBtns[index].classList.add("active");
+        indicator.style.transform = "translateX(" + index * 100 + "%)";
+        document.querySelectorAll(".screen").forEach(function (s) { s.classList.remove("active"); });
+        document.getElementById("screen-" + navBtns[index].dataset.target).classList.add("active");
+      }
+
+      /* ---------- События ---------- */
+
+      navBtns.forEach(function (btn, i) {
+        btn.addEventListener("click", function () { switchTab(i); });
+      });
+
+      function bindTaskActions(containerId) {
+        document.getElementById(containerId).addEventListener("click", function (e) {
+          var btn = e.target.closest("[data-action]");
+          if (!btn) return;
+          var id = Number(btn.dataset.id);
+          if (btn.dataset.action === "done") completeTask(id);
+          if (btn.dataset.action === "decline") declineTask(id);
+        });
+      }
+      bindTaskActions("homeTasks");
+      bindTaskActions("listTasks");
+
+      document.getElementById("shopItems").addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-buy]");
+        if (!btn) return;
+        buyItem(btn.dataset.buy);
+      });
+
+      document.getElementById("addTaskBtn").addEventListener("click", function () {
+        openOverlay(document.getElementById("taskModal"));
+        document.getElementById("taskInput").value = "";
+        document.getElementById("taskError").textContent = "";
+        setTimeout(function () { document.getElementById("taskInput").focus(); }, 50);
+      });
+      document.getElementById("taskCancel").addEventListener("click", function () {
+        closeOverlay(document.getElementById("taskModal"));
+      });
+      document.getElementById("taskConfirm").addEventListener("click", confirmTask);
+
+      document.getElementById("nickCancel").addEventListener("click", function () {
+        closeOverlay(document.getElementById("nickModal"));
+      });
+      document.getElementById("nickConfirm").addEventListener("click", confirmNick);
+      document.getElementById("nickInput").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") confirmNick();
+      });
+
+      [document.getElementById("taskModal"), document.getElementById("nickModal")].forEach(function (overlay) {
+        overlay.addEventListener("click", function (e) {
+          if (e.target === overlay) closeOverlay(overlay);
+        });
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          closeOverlay(document.getElementById("taskModal"));
+          closeOverlay(document.getElementById("nickModal"));
+        }
+      });
+
+      /* ---------- Старт ---------- */
+
+      render();
+    })();
+  </script>
+</body>
+</html>
